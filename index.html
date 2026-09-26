@@ -1,0 +1,570 @@
+<!DOCTYPE html><html lang="uk" id="html-root"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelloKittyFit — Твій персональний фітнес-щоденник</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet"></head><body>
+
+    <!-- Модальне вікно авторизації / реєстрації (База даних акаунтів) -->
+    <div id="auth-modal" class="modal-overlay" style="display: flex;">
+        <div class="modal-card" style="max-width: 400px; width: 90%;">
+            <h2 id="auth-title">🐾 Вхід у HelloKittyFit 🐾</h2>
+            <p id="auth-desc" style="font-size: 13px; color: #666; margin-bottom: 15px;">Увійди у свій акаунт або створи новий, щоб зберігати особисті дані та історію.</p>
+            
+            <div class="input-group" style="flex-direction: column; gap: 10px;">
+                <input type="text" id="auth-name" placeholder="Як тебе звати? (для реєстрації)" style="width: 100%; display: none;">
+                <input type="email" id="auth-email" placeholder="Електронна пошта" style="width: 100%;">
+                <input type="password" id="auth-password" placeholder="Пароль" style="width: 100%;">
+                <input type="number" id="auth-goal-weight" step="0.1" placeholder="Цільова вага (кг) (для реєстрації)" style="width: 100%; display: none;">
+                
+                <button class="pink-btn" id="auth-submit-btn" onclick="handleAuthSubmit()" style="width: 100%; margin-top: 5px;">Увійти 💕</button>
+                
+                <p class="toggle-auth-text" onclick="toggleAuthMode()" style="text-align: center; cursor: pointer; font-size: 13px; color: #d63384; margin-top: 10px;">
+                    <span id="auth-toggle-prompt">Ще немає акаунту?</span> <strong id="auth-toggle-link">Зареєструватися</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальне вікно архіву / історії за кожен день -->
+    <div id="archive-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card archive-card" style="max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <h2 id="archive-title">📂 Архів та історія за кожен день</h2>
+            <p class="section-desc" id="archive-desc">Тут зберігається детальна історія твоїх щоденних перемог та активності.</p>
+            
+            <div id="archive-content" class="archive-box" style="margin-top: 15px;">
+                <!-- Дані архіву завантажаться сюди автоматично -->
+            </div>
+
+            <button class="pink-btn" onclick="closeArchiveModal()" id="btn-close-archive" style="margin-top: 20px; width: 100%;">Закрити 💖</button>
+        </div>
+    </div>
+
+    <header class="site-header">
+        <div class="header-content">
+            <div class="header-top-bar">
+                <!-- Селектор вибору мов -->
+                <select id="lang-selector" class="lang-select-dropdown" onchange="changeLanguageDropdown(this.value)">
+                    <option value="uk">🇺🇦 Українська</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="tr">🇹🇷 Türkçe</option>
+                    <option value="pl">🇵🇱 Polski</option>
+                    <option value="de">🇩🇪 Deutsch</option>
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="it">🇮🇹 Italiano</option>
+                    <option value="ja">🇯🇵 日本語</option>
+                    <option value="ko">🇰🇷 한국어</option>
+                    <option value="sv">🇸🇪 Svenska</option>
+                    <option value="nl">🇳🇱 Nederlands</option>
+                </select>
+                <button class="archive-btn" onclick="openArchiveModal()" id="archive-btn-text">📂 Архів</button>
+                <button class="logout-btn" onclick="logoutUser()" id="logout-btn-text">Вийти 🚪</button>
+            </div>
+            <h1>🐾 HelloKittyFit 🐾</h1>
+            <p id="welcome-user-text">Привіт! Твій шлях до гармонії та енергії.</p>
+        </div>
+    </header>
+
+    <main class="main-container">
+
+        <!-- Блок: Шлях до мети -->
+        <section class="card goal-progress-card">
+            <h2 id="goal-card-title">🎯 Твоя мета та прогрес</h2>
+            <p class="section-desc" id="goal-card-desc">Рухайся до своєї мрії крок за кроком. Ти зможеш усе!</p>
+            <div class="goal-info-box">
+                <p><span id="txt-target-label">Бажана ціль</span>: <span id="target-weight-display">-</span> кг</p>
+                <p><span id="txt-left-label">Залишилось скинути / набрати</span>: <span id="weight-left-display">-</span> кг</p>
+            </div>
+            <button class="small-pink-btn" onclick="openResetModal()" id="btn-edit-profile">Змінити профіль / ціль ⚙️</button>
+        </section>
+
+        <!-- Блок: Натхнення дня -->
+        <section class="card motivation-card">
+            <h2 id="quote-card-title">✨ Натхнення дня</h2>
+            <p id="daily-quote" class="quote-text">"Твоє тіло здатне на все, головне — повірити в це! 💖"</p>
+            <button class="small-pink-btn" onclick="setRandomQuote()" id="btn-new-quote">Оновити цитату 🦋</button>
+        </section>
+
+        <!-- Календар виконаних днів -->
+        <section class="card calendar-card">
+            <h2 id="calendar-card-title">📅 Календар щоденних перемог</h2>
+            <p class="section-desc" id="calendar-card-desc">Кликай на дні місяця, щоб відзначити свої успіхи та догляд за собою!</p>
+            
+            <div class="calendar-header">
+                <button class="small-pink-btn" onclick="changeMonth(-1)">◀</button>
+                <span id="calendar-month-year" class="calendar-month-title">Місяць Рік</span>
+                <button class="small-pink-btn" onclick="changeMonth(1)">▶</button>
+            </div>
+            
+            <div class="calendar-weekdays">
+                <span id="wd-1">Пн</span><span id="wd-2">Вт</span><span id="wd-3">Ср</span><span id="wd-4">Чт</span><span id="wd-5">Пт</span><span id="wd-6">Сб</span><span id="wd-7">Нд</span>
+            </div>
+            <div class="calendar-grid" id="calendar-days-container"></div>
+        </section>
+
+        <!-- Блок: Трекер циклу та рекомендації -->
+        <section class="card cycle-card">
+            <h2 id="cycle-card-title">🌸 Трекер циклу та догляду</h2>
+            <p class="section-desc" id="cycle-card-desc">Стеж за своїм жіночим здоров'ям, фазами циклу та отримуй персоналізовані поради для тренувань.</p>
+            
+            <div class="input-group" style="flex-wrap: wrap; gap: 10px;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label id="lbl-last-period" style="font-size: 13px; color: #d63384; font-weight: 600; display: block; margin-bottom: 5px;">Дата початку останньої менструації:</label>
+                    <input type="date" id="last-period-date" onchange="saveCycleSettings()" style="width: 100%;">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label id="lbl-cycle-length" style="font-size: 13px; color: #d63384; font-weight: 600; display: block; margin-bottom: 5px;">Середня тривалість циклу (днів):</label>
+                    <input type="number" id="cycle-length-input" value="28" min="20" max="45" onchange="saveCycleSettings()" style="width: 100%;">
+                </div>
+            </div>
+
+            <div class="cycle-info-box" style="margin-top: 20px; background: #fff0f5; padding: 15px; border-radius: 15px; border: 1px dashed #ffb6c1;">
+                <p><strong><span id="txt-current-phase">Поточна фаза</span>:</strong> <span id="cycle-phase-name" style="color: #d63384; font-weight: 700;">-</span></p>
+                <p><strong><span id="txt-cycle-day">День циклу</span>:</strong> <span id="cycle-day-count">-</span></p>
+                <p><strong><span id="txt-next-period">Прогноз наступних місячних</span>:</strong> <span id="next-period-date">-</span></p>
+                <p><strong><span id="txt-ovulation-day">Вікно овуляції</span>:</strong> <span id="ovulation-window">-</span></p>
+            </div>
+
+            <div class="cycle-recommendations" style="margin-top: 15px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px solid #ffd1dc;">
+                <h3 id="rec-title" style="font-size: 16px; color: #d63384; margin-bottom: 8px;">💡 Рекомендації для цього періоду:</h3>
+                <p id="cycle-workout-rec" style="font-size: 14px; color: #555; line-height: 1.5;">Обери дату початку менструації вище, щоб отримати поради щодо навантажень і догляду.</p>
+            </div>
+        </section>
+
+        <!-- Калькулятор калорій -->
+        <section class="card calorie-card">
+            <h2 id="cal-card-title">🥗 Розумний калькулятор калорій</h2>
+            <p class="section-desc" id="cal-card-desc">Вибери з бази 100+ продуктів, вкажи кількість (наприклад: 3 штуки або 200 грам) — сайт усе порахує сам!</p>
+            
+            <div class="input-group">
+                <select id="food-preset-select" onchange="fillPresetFood()">
+                    <option value="" id="opt-choose-product">-- Вибери продукт із бази (100+ позицій) --</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="food-name" placeholder="Назва продукту">
+                <input type="number" id="food-cals-100" placeholder="Ккал за 100г/мл/порцію">
+                <input type="text" id="food-amount-desc" placeholder="Кількість (напр: 3 шт / 200г)">
+                <input type="number" id="food-multiplier" placeholder="Множник (напр: 3)" value="1">
+                <button class="pink-btn" onclick="addCalculatedCalories()" id="btn-add-food">Додати страву</button>
+            </div>
+
+            <div class="calorie-result-box">
+                <p><span id="txt-consumed-today">Спожито за сьогодні</span>: <span id="total-calories">0</span> ккал</p>
+                <button class="reset-btn-small" onclick="resetCalories()" id="btn-clear-food">Очистити список</button>
+            </div>
+
+            <ul id="food-list" class="styled-list"></ul>
+        </section>
+
+        <!-- Трекер кроків -->
+        <section class="card steps-card">
+            <h2 id="steps-card-title">👟 Трекер кроків та активності</h2>
+            <p class="section-desc" id="steps-card-desc">Стеж за щоденною активністю. Ціль — 10 000 кроків на день!</p>
+            
+            <div class="input-group">
+                <input type="number" id="steps-input" placeholder="Кількість кроків">
+                <button class="pink-btn" onclick="addSteps()" id="btn-add-steps">Додати кроки</button>
+                <button class="reset-btn-small" onclick="resetStepsToday()" id="btn-reset-steps">Скинути день</button>
+            </div>
+
+            <div class="progress-info">
+                <p><span id="txt-total-steps">Всього кроків за день</span>: <span id="total-steps">0</span> / 10 000</p>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div id="steps-progress" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+        </section>
+
+        <!-- Трекер води -->
+        <section class="card water-card">
+            <h2 id="water-card-title">💧 Трекер води</h2>
+            <p class="section-desc" id="water-card-desc">Пий достатньо води для краси та енергії (ціль — 8 склянок).</p>
+            <div class="water-counter">
+                <p><span id="txt-water-drunk">Випито склянок</span>: <span id="water-count">0</span> / 8</p>
+                <div id="water-message" class="water-beauty-msg"></div>
+                <div class="input-group" style="margin-top: 15px;">
+                    <button class="pink-btn" onclick="addWater()" id="btn-add-water">+ Випити склянку 🥤</button>
+                    <button class="reset-btn" onclick="resetWater()" id="btn-reset-water">Скинути</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Параметри тіла -->
+        <section class="card params-card">
+            <h2 id="params-card-title">📈 Параметри тіла та розрахунок калоражу</h2>
+            <p class="section-desc" id="params-card-desc">Введи свої дані для розрахунку норми калорій.</p>
+            
+            <div class="input-group">
+                <input type="number" id="weight-input" step="0.1" placeholder="Вага (кг)">
+                <input type="number" id="height-input" placeholder="Зріст (см)">
+                <input type="number" id="age-input" placeholder="Вік">
+                <input type="number" id="waist-input" placeholder="Талія (см)">
+                <button class="pink-btn" onclick="calculateNormAndSave()" id="btn-calc-params">Розрахувати та зберегти</button>
+            </div>
+
+            <div class="params-history-box" id="params-history">
+                <p><span id="txt-last-data">Останні дані</span>: Вага — <span id="saved-weight">-</span> кг | Талія — <span id="saved-waist">-</span> см</p>
+                <p class="norm-highlight">💖 <span id="txt-norm-label">Твоя рекомендована норма калорій</span>: <span id="calculated-norm">-</span> ккал/день</p>
+            </div>
+        </section>
+
+        <!-- Музичний плеєр -->
+        <section class="card music-card">
+            <h2 id="music-card-title">🎵 Музичний вайб для тренувань</h2>
+            <p class="section-desc" id="music-card-desc">Увімкни улюблений трек з комп'ютера або встав посилання на аудіо/YouTube для ідеальної енергії!</p>
+            
+            <div class="audio-player-box" style="margin-bottom: 15px;">
+                <audio id="custom-audio" controls style="width: 100%; border-radius: 10px; outline: none;"></audio>
+            </div>
+
+            <div class="input-group" style="flex-wrap: wrap; gap: 10px;">
+                <div style="flex: 1; min-width: 220px;">
+                    <label style="font-size: 13px; color: #d63384; font-weight: 600; display: block; margin-bottom: 5px;">Завантажити аудіофайл з пристрою:</label>
+                    <input type="file" id="audio-file-input" accept="audio/*" onchange="loadLocalAudio(event)" style="font-size: 13px; padding: 6px; width: 100%; background: #fff0f5; border: 1px dashed #ffb6c1; border-radius: 8px;">
+                </div>
+                <div style="flex: 1; min-width: 220px;">
+                    <label style="font-size: 13px; color: #d63384; font-weight: 600; display: block; margin-bottom: 5px;">Або вставити посилання (MP3 / YouTube):</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="audio-url-input" placeholder="https://... або посилання YouTube" style="flex: 1;">
+                        <button class="pink-btn" onclick="loadUrlAudio()" style="white-space: nowrap;">Запустити</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="youtube-audio-container" style="margin-top: 15px; display: none;">
+                <div class="iframe-wrapper">
+                    <iframe id="yt-audio-iframe" src="" title="YouTube Music Player" allow="autoplay" allowfullscreen style="width: 100%; height: 200px; border-radius: 12px; border: none;"></iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- Відео-тренування (ТІЛЬКИ ПОСИЛАННЯ YOUTUBE) -->
+        <section class="card video-card">
+            <h2 id="video-card-title">🎥 Улюблені тренування: Shake Twins, Torepina & Emma Fitness</h2>
+            <p class="section-desc" id="video-card-desc">Танцювальне кардіо, вправи для ніжок та інтенсивні комплекси!</p>
+            
+            <div class="video-grid" id="video-grid-container">
+                <div class="video-item">
+                    <div class="iframe-wrapper">
+                        <iframe src="https://www.youtube.com/embed/5rBBLJrBSIQ" title="Shake Twins Workout" allowfullscreen></iframe>
+                    </div>
+                    <p class="video-title">🔥 Shake Twins: Кардіо для талії та боків</p>
+                </div>
+                
+                <div class="video-item">
+                    <div class="iframe-wrapper">
+                        <iframe src="https://www.youtube.com/embed/kmMl5ENhaks" title="Torepina Full Body Workout" allowfullscreen></iframe>
+                    </div>
+                    <p class="video-title">✨ Торєпіна: Спалюємо жир — все тіло</p>
+                </div>
+
+                <div class="video-item">
+                    <div class="iframe-wrapper">
+                        <iframe src="https://www.youtube.com/embed/l9sDQ_ZL304" title="Emma Fitness Workout" allowfullscreen></iframe>
+                    </div>
+                    <p class="video-title">💖 EMMA Fitness: Комплекс для стегон та животиків</p>
+                </div>
+            </div>
+
+            <!-- Форма: Тільки поле для YouTube-посилання -->
+            <div style="margin-top: 25px; background: #fff0f5; padding: 15px; border-radius: 15px; border: 1px dashed #ffb6c1;">
+                <h3 style="font-size: 15px; color: #d63384; margin-bottom: 10px;">➕ Додати тренування з YouTube:</h3>
+                <div class="input-group" style="flex-wrap: wrap; gap: 10px; margin-bottom: 0;">
+                    <input type="text" id="new-video-url" placeholder="Встав посилання на відео з YouTube (https://...)" style="flex: 3; min-width: 250px;">
+                    <button class="pink-btn" onclick="addNewVideo()" style="flex: 1; min-width: 120px;">Додати</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="site-footer">
+        <p>🐾 HelloKittyFit © 2026 | <span id="footer-text">Створено з любов'ю та натхненням</span> 💖</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        let isRegisterMode = false;
+
+        // Перевірка при завантаженні сайту
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentUser = localStorage.getItem('helloKitty_currentUser');
+            if (!currentUser) {
+                document.getElementById('auth-modal').style.display = 'flex';
+            } else {
+                document.getElementById('auth-modal').style.display = 'none';
+                checkNewDayAndArchive();
+            }
+        });
+
+        // Перемикання між Входом та Реєстрацією
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            const title = document.getElementById('auth-title');
+            const desc = document.getElementById('auth-desc');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const prompt = document.getElementById('auth-toggle-prompt');
+            const link = document.getElementById('auth-toggle-link');
+            const nameInput = document.getElementById('auth-name');
+            const goalInput = document.getElementById('auth-goal-weight');
+
+            if (isRegisterMode) {
+                title.innerText = "🐾 Реєстрація у HelloKittyFit 🐾";
+                desc.innerText = "Створи новий акаунт, щоб почати свій фітнес-шлях!";
+                submitBtn.innerText = "Зареєструватися ✨";
+                prompt.innerText = "Вже є акаунт?";
+                link.innerText = "Увійти";
+                nameInput.style.display = 'block';
+                goalInput.style.display = 'block';
+            } else {
+                title.innerText = "🐾 Вхід у HelloKittyFit 🐾";
+                desc.innerText = "Увійди у свій акаунт або створи новий, щоб зберігати особисті дані.";
+                submitBtn.innerText = "Увійти 💕";
+                prompt.innerText = "Ще немає акаунту?";
+                link.innerText = "Зареєструватися";
+                nameInput.style.display = 'none';
+                goalInput.style.display = 'none';
+            }
+        }
+
+        // Обробка входу / реєстрації (База даних акаунтів)
+        function handleAuthSubmit() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const name = document.getElementById('auth-name').value.trim();
+            const goalWeight = document.getElementById('auth-goal-weight').value.trim();
+
+            if (!email || !password) {
+                alert("Будь ласка, заповни пошту та пароль!");
+                return;
+            }
+
+            let usersDB = JSON.parse(localStorage.getItem('helloKitty_usersDB') || '{}');
+
+            if (isRegisterMode) {
+                if (!name) {
+                    alert("Будь ласка, вкажи своє ім'я!");
+                    return;
+                }
+                if (usersDB[email]) {
+                    alert("Користувач з такою поштою вже існує!");
+                    return;
+                }
+
+                // Створюємо новий акаунт у базі даних
+                usersDB[email] = {
+                    name: name,
+                    password: password,
+                    goalWeight: goalWeight || '50',
+                    history: {},
+                    water: '0',
+                    steps: '0',
+                    calories: '0',
+                    weight: '-',
+                    waist: '-'
+                };
+                localStorage.setItem('helloKitty_usersDB', JSON.stringify(usersDB));
+                alert("Акаунт успішно створено! Тепер увійди.");
+                toggleAuthMode();
+            } else {
+                // Перевірка входу
+                if (!usersDB[email] || usersDB[email].password !== password) {
+                    alert("Неправильна пошта або пароль!");
+                    return;
+                }
+
+                // Вхід успішний
+                localStorage.setItem('helloKitty_currentUser', email);
+                document.getElementById('auth-modal').style.display = 'none';
+                checkNewDayAndArchive();
+                location.reload(); // Перезавантажуємо сторінку для підтягування даних користувача
+            }
+        }
+
+        // Вихід з аккаунта
+        function logoutUser() {
+            localStorage.removeItem('helloKitty_currentUser');
+            location.reload();
+        }
+
+        // Перевірка нового дня та архівація для поточного користувача
+        function checkNewDayAndArchive() {
+            const currentUser = localStorage.getItem('helloKitty_currentUser');
+            if (!currentUser) return;
+
+            let usersDB = JSON.parse(localStorage.getItem('helloKitty_usersDB') || '{}');
+            let user = usersDB[currentUser];
+            if (!user) return;
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            const lastSavedDate = localStorage.getItem(`helloKitty_lastDate_${currentUser}`);
+
+            if (lastSavedDate && lastSavedDate !== todayStr) {
+                if (!user.history) user.history = {};
+                user.history[lastSavedDate] = {
+                    water: user.water || '0',
+                    steps: user.steps || '0',
+                    calories: user.calories || '0',
+                    weight: user.weight || '-'
+                };
+
+                user.water = '0';
+                user.steps = '0';
+                user.calories = '0';
+                usersDB[currentUser] = user;
+                localStorage.setItem('helloKitty_usersDB', JSON.stringify(usersDB));
+            }
+
+            localStorage.setItem(`helloKitty_lastDate_${currentUser}`, todayStr);
+            loadUserDataToUI(user);
+        }
+
+        function loadUserDataToUI(user) {
+            const waterCountEl = document.getElementById('water-count');
+            if (waterCountEl) waterCountEl.innerText = user.water || '0';
+
+            const totalSteps = document.getElementById('total-steps');
+            const stepsProgress = document.getElementById('steps-progress');
+            if (totalSteps) totalSteps.innerText = user.steps || '0';
+            if (stepsProgress) {
+                let percent = (parseInt(user.steps || '0') / 10000) * 100;
+                if (percent > 100) percent = 100;
+                stepsProgress.style.width = percent + '%';
+            }
+
+            const totalCals = document.getElementById('total-calories');
+            if (totalCals) totalCals.innerText = user.calories || '0';
+
+            const targetDisplay = document.getElementById('target-weight-display');
+            if (targetDisplay) targetDisplay.innerText = user.goalWeight || '-';
+
+            const welcomeText = document.getElementById('welcome-user-text');
+            if (welcomeText) welcomeText.innerText = `Привіт, ${user.name}! Твій шлях до гармонії та енергії. 💖`;
+        }
+
+        // Кнопки управління архівом
+        function openArchiveModal() {
+            const modal = document.getElementById('archive-modal');
+            const contentBox = document.getElementById('archive-content');
+            
+            const currentUser = localStorage.getItem('helloKitty_currentUser');
+            let usersDB = JSON.parse(localStorage.getItem('helloKitty_usersDB') || '{}');
+            let user = usersDB[currentUser];
+
+            if (!user || !user.history || Object.keys(user.history).length === 0) {
+                contentBox.innerHTML = `<p style="text-align: center; color: #888; padding: 20px;">Архів поки порожній. Дані почнуть з'являтися з наступним новим днем! 🌸</p>`;
+            } else {
+                let keys = Object.keys(user.history).sort().reverse();
+                let html = '';
+                keys.forEach(date => {
+                    let dayData = user.history[date];
+                    html += `
+                        <div style="background: #fff0f5; padding: 12px 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #ffd1dc;">
+                            <strong style="color: #d63384; font-size: 15px;">📅 Дата: ${date}</strong>
+                            <p style="margin: 5px 0 0; font-size: 13px; color: #555;">
+                                💧 Вода: ${dayData.water} скл. | 👟 Кроки: ${dayData.steps} | 🥗 Калорії: ${dayData.calories} ккал | ⚖️ Вага: ${dayData.weight} кг
+                            </p>
+                        </div>
+                    `;
+                });
+                contentBox.innerHTML = html;
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeArchiveModal() {
+            document.getElementById('archive-modal').style.display = 'none';
+        }
+
+        // Музичний плеєр
+        function loadLocalAudio(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const audioPlayer = document.getElementById('custom-audio');
+                const ytContainer = document.getElementById('youtube-audio-container');
+                
+                ytContainer.style.display = 'none';
+                audioPlayer.style.display = 'block';
+                
+                const fileURL = URL.createObjectURL(file);
+                audioPlayer.src = fileURL;
+                audioPlayer.play();
+            }
+        }
+
+        function loadUrlAudio() {
+            const urlInput = document.getElementById('audio-url-input').value.trim();
+            const audioPlayer = document.getElementById('custom-audio');
+            const ytContainer = document.getElementById('youtube-audio-container');
+            const ytIframe = document.getElementById('yt-audio-iframe');
+
+            if (!urlInput) return;
+
+            if (urlInput.includes('youtube.com') || urlInput.includes('youtu.be')) {
+                let videoId = '';
+                if (urlInput.includes('youtu.be/')) {
+                    videoId = urlInput.split('youtu.be/')[1].split('?')[0];
+                } else if (urlInput.includes('watch?v=')) {
+                    videoId = urlInput.split('watch?v=')[1].split('&')[0];
+                } else if (urlInput.includes('embed/')) {
+                    videoId = urlInput.split('embed/')[1].split('?')[0];
+                }
+
+                if (videoId) {
+                    audioPlayer.pause();
+                    audioPlayer.style.display = 'none';
+                    ytContainer.style.display = 'block';
+                    ytIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                }
+            } else {
+                ytContainer.style.display = 'none';
+                audioPlayer.style.display = 'block';
+                audioPlayer.src = urlInput;
+                audioPlayer.play().catch(e => {
+                    alert("Не вдалося відтворити файл за цим посиланням.");
+                });
+            }
+        }
+
+        // Додавання відео з YouTube
+        function addNewVideo() {
+            const urlInput = document.getElementById('new-video-url').value.trim();
+            const container = document.getElementById('video-grid-container');
+
+            if (!urlInput) {
+                alert("Будь ласка, встав посилання на відео з YouTube!");
+                return;
+            }
+
+            let videoId = '';
+            if (urlInput.includes('youtu.be/')) {
+                videoId = urlInput.split('youtu.be/')[1].split('?')[0];
+            } else if (urlInput.includes('watch?v=')) {
+                videoId = urlInput.split('watch?v=')[1].split('&')[0];
+            } else if (urlInput.includes('embed/')) {
+                videoId = urlInput.split('embed/')[1].split('?')[0];
+            }
+
+            if (!videoId) {
+                alert("Не вдалося розпізнати YouTube-посилання.");
+                return;
+            }
+
+            const newVideoItem = document.createElement('div');
+            newVideoItem.className = 'video-item';
+            newVideoItem.innerHTML = `
+                <div class="iframe-wrapper">
+                    <iframe src="https://www.youtube.com/embed/${videoId}" title="Workout Video" allowfullscreen></iframe>
+                </div>
+            `;
+
+            container.appendChild(newVideoItem);
+            document.getElementById('new-video-url').value = '';
+        }
+    </script>
+</body></html>
